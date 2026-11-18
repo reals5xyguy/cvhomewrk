@@ -1,0 +1,9 @@
+﻿.venv/
+__pycache__/
+*.pyc
+dataset/
+split_dataset/
+models/
+backup_models/
+backup_cnn/
+backup_mlp/

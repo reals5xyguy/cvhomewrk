@@ -1,0 +1,563 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recycling AI | 재활용 쓰레기 자동 분류</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f7f5;
+            color: #24332a;
+        }
+
+        header {
+            background: #206c49;
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0 0 10px;
+        }
+
+        header p {
+            margin: 0;
+            color: #e0f1e6;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .nav-button {
+            width: auto;
+            margin: 0;
+            padding: 11px 24px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 15px;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: white;
+            color: #206c49;
+        }
+
+        main {
+            max-width: 960px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .upload-area {
+            border: 2px dashed #8abca0;
+            border-radius: 12px;
+            padding: 35px 20px;
+            text-align: center;
+            background: #f8fcf9;
+        }
+
+        input[type="file"] {
+            max-width: 100%;
+        }
+
+        #preview {
+            display: none;
+            max-width: 100%;
+            max-height: 300px;
+            margin: 20px auto 0;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 10px;
+            background: #206c49;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #185437;
+        }
+
+        button:disabled {
+            background: #9ca9a0;
+            cursor: not-allowed;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .final-result {
+            text-align: center;
+            padding: 35px 20px;
+            background: #f6faf7;
+            border: 1px solid #dce9df;
+            border-radius: 14px;
+        }
+
+        .final-label {
+            color: #58675d;
+            font-size: 16px;
+        }
+
+        .final-prediction {
+            font-size: 42px;
+            font-weight: bold;
+            color: #206c49;
+            margin: 20px 0;
+        }
+
+        .decision-info {
+            color: #58675d;
+            font-size: 14px;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .model-card {
+            background: #f6faf7;
+            border: 1px solid #dce9df;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .model-card h3 {
+            margin-top: 0;
+        }
+
+        .prediction {
+            font-size: 25px;
+            font-weight: bold;
+            color: #206c49;
+            margin: 16px 0;
+        }
+
+        .confidence {
+            color: #58675d;
+            font-size: 15px;
+        }
+
+        #status {
+            margin-top: 15px;
+            text-align: center;
+            color: #58675d;
+        }
+
+        .info-text {
+            color: #58675d;
+            line-height: 1.7;
+        }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: #718077;
+            font-size: 13px;
+        }
+
+        @media (max-width: 700px) {
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .final-prediction {
+                font-size: 34px;
+            }
+
+            .nav-button {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>♻ Recycling AI</h1>
+        <p>딥러닝 기반 재활용 쓰레기 이미지 자동 분류 시스템</p>
+
+        <nav>
+            <button
+                class="nav-button active"
+                id="homeTabButton"
+                onclick="showTab('home')"
+            >
+                AI 자동 분류
+            </button>
+
+            <button
+                class="nav-button"
+                id="analysisTabButton"
+                onclick="showTab('analysis')"
+            >
+                모델별 분석
+            </button>
+        </nav>
+    </header>
+
+    <main>
+        <div id="homeTab" class="tab-content active">
+
+            <section class="card">
+                <h2>이미지 업로드</h2>
+                <p>
+                    플라스틱, 종이, 유리, 금속 중
+                    하나가 포함된 사진을 선택하세요.
+                </p>
+
+                <div class="upload-area">
+                    <input
+                        type="file"
+                        id="imageInput"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
+
+                    <img
+                        id="preview"
+                        alt="업로드 이미지 미리보기"
+                    >
+                </div>
+
+                <button
+                    id="predictButton"
+                    onclick="predictImage()"
+                >
+                    AI 분류 시작
+                </button>
+
+                <p id="status"></p>
+            </section>
+
+            <section class="card">
+                <h2>AI 최종 분류 결과</h2>
+
+                <div class="final-result">
+                    <div class="final-label">
+                        재활용 쓰레기 분류 결과
+                    </div>
+
+                    <div
+                        class="final-prediction"
+                        id="finalPrediction"
+                    >
+                        -
+                    </div>
+
+                    <div
+                        class="decision-info"
+                        id="decisionInfo"
+                    >
+                        이미지를 업로드하고 분류를 시작해 주세요.
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="analysisTab" class="tab-content">
+
+            <section class="card">
+                <h2>AI 모델별 분석</h2>
+
+                <p class="info-text">
+                    MLP, ResNet18, MobileNetV2
+                    세 가지 딥러닝 모델의 개별 예측 결과를
+                    확인할 수 있습니다.
+                </p>
+
+                <div class="result-grid">
+                    <div class="model-card">
+                        <h3>MLP</h3>
+
+                        <div
+                            class="prediction"
+                            id="mlpPrediction"
+                        >
+                            -
+                        </div>
+
+                        <div
+                            class="confidence"
+                            id="mlpConfidence"
+                        >
+                            예측 대기 중
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <h3>ResNet18</h3>
+
+                        <div
+                            class="prediction"
+                            id="resnetPrediction"
+                        >
+                            -
+                        </div>
+
+                        <div
+                            class="confidence"
+                            id="resnetConfidence"
+                        >
+                            예측 대기 중
+                        </div>
+                    </div>
+
+                    <div class="model-card">
+                        <h3>MobileNetV2</h3>
+
+                        <div
+                            class="prediction"
+                            id="mobilePrediction"
+                        >
+                            -
+                        </div>
+
+                        <div
+                            class="confidence"
+                            id="mobileConfidence"
+                        >
+                            예측 대기 중
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>분류 방식 안내</h2>
+
+                <p class="info-text">
+                    본 시스템은 세 가지 딥러닝 모델의
+                    예측 결과를 종합하여 최종 분류합니다.
+                </p>
+
+                <p class="info-text">
+                    세 모델 중 두 개 이상이 같은 결과를
+                    예측하면 해당 결과를 선택합니다.
+                    세 모델이 모두 다른 결과를 예측하면
+                    테스트 정확도가 가장 높은
+                    MobileNetV2의 결과를 사용합니다.
+                </p>
+
+                <p class="info-text">
+                    표시되는 예측 확률은 모델의 Softmax
+                    출력값이며, 실제 정답 확률과
+                    정확히 일치하지 않을 수 있습니다.
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        Recycling AI | 영상인식프로그래밍 프로젝트
+    </footer>
+
+    <script>
+        const imageInput = document.getElementById("imageInput");
+        const preview = document.getElementById("preview");
+        const statusText = document.getElementById("status");
+        const predictButton = document.getElementById("predictButton");
+
+        let previewUrl = null;
+
+        function showTab(tab) {
+            const isHome = tab === "home";
+
+            document.getElementById("homeTab")
+                .classList.toggle("active", isHome);
+
+            document.getElementById("analysisTab")
+                .classList.toggle("active", !isHome);
+
+            document.getElementById("homeTabButton")
+                .classList.toggle("active", isHome);
+
+            document.getElementById("analysisTabButton")
+                .classList.toggle("active", !isHome);
+        }
+
+        imageInput.addEventListener("change", function () {
+            const file = this.files[0];
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+
+            if (!file) {
+                preview.style.display = "none";
+                preview.removeAttribute("src");
+                resetResults();
+                return;
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            preview.src = previewUrl;
+            preview.style.display = "block";
+
+            statusText.textContent = "";
+            resetResults();
+        });
+
+        function resetResults() {
+            document.getElementById(
+                "finalPrediction"
+            ).textContent = "-";
+
+            document.getElementById(
+                "decisionInfo"
+            ).textContent =
+                "이미지를 업로드하고 분류를 시작해 주세요.";
+
+            const predictionIds = [
+                "mlpPrediction",
+                "resnetPrediction",
+                "mobilePrediction"
+            ];
+
+            const confidenceIds = [
+                "mlpConfidence",
+                "resnetConfidence",
+                "mobileConfidence"
+            ];
+
+            predictionIds.forEach(id => {
+                document.getElementById(id).textContent = "-";
+            });
+
+            confidenceIds.forEach(id => {
+                document.getElementById(id).textContent =
+                    "예측 대기 중";
+            });
+        }
+
+        async function predictImage() {
+            const file = imageInput.files[0];
+
+            if (!file) {
+                alert("먼저 이미지를 선택해 주세요.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("image", file);
+
+            predictButton.disabled = true;
+            statusText.textContent =
+                "AI 모델이 이미지를 분석하고 있습니다...";
+
+            resetResults();
+
+            try {
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail || "분류 요청 실패"
+                    );
+                }
+
+                document.getElementById(
+                    "finalPrediction"
+                ).textContent = data.final_prediction;
+
+                let decisionText = "";
+
+                if (data.decision_method === "다수결") {
+                    decisionText =
+                        "3개 모델 중 " +
+                        data.vote_count +
+                        "개 모델이 동일하게 예측했습니다.";
+                } else {
+                    decisionText =
+                        "모델의 예측이 서로 달라 " +
+                        "MLP 결과를 적용했습니다.";
+                }
+
+                document.getElementById(
+                    "decisionInfo"
+                ).textContent = decisionText;
+
+                showResult("mlp", data.models.MLP);
+                showResult("resnet", data.models.ResNet18);
+                showResult("mobile", data.models.MobileNetV2);
+
+                statusText.textContent =
+                    "분류가 완료되었습니다.";
+
+            } catch (error) {
+                statusText.textContent =
+                    "오류: " + error.message;
+
+            } finally {
+                predictButton.disabled = false;
+            }
+        }
+
+        function showResult(prefix, result) {
+            document.getElementById(
+                prefix + "Prediction"
+            ).textContent = result.prediction;
+
+            document.getElementById(
+                prefix + "Confidence"
+            ).textContent =
+                "예측 확률: " +
+                result.confidence.toFixed(2) + "%";
+        }
+    </script>
+</body>
+</html>

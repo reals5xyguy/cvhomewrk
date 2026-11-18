@@ -1,0 +1,5 @@
+﻿Actual / Predicted,glass,metal,paper,plastic
+glass,69,4,1,2
+metal,3,57,0,2
+paper,2,1,85,2
+plastic,7,2,8,56
