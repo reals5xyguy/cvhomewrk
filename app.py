@@ -15,7 +15,7 @@ from fastapi.concurrency import run_in_threadpool
 app = FastAPI(title="Recycling AI")
 
 BASE_DIR = Path(__file__).resolve().parent
-MODEL_DIR = BASE_DIR / "models"
+MODEL_DIR = BASE_DIR / "models_v2"
 HTML_PATH = BASE_DIR / "templates" / "index.html"
 
 DEVICE = torch.device(
@@ -66,7 +66,7 @@ def create_model(name):
         model.fc = nn.Linear(
             model.fc.in_features, 4
         )
-        filename = "resnet18_finetuned.pth"
+        filename = "resnet18.pth"
         image_size = 224
 
     elif name == "MobileNetV2":
@@ -74,7 +74,7 @@ def create_model(name):
         model.classifier[1] = nn.Linear(
             model.last_channel, 4
         )
-        filename = "mobilenetv2_finetuned.pth"
+        filename = "mobilenetv2.pth"
         image_size = 224
 
     else:
@@ -170,8 +170,8 @@ def predict_image(image):
         final_prediction = most_common[0]
         decision_method = "다수결"
     else:
-        final_prediction = results["MLP"]["prediction"]
-        decision_method = "MLP 기준"
+        final_prediction = results["MobileNetV2"]["prediction"]
+        decision_method = "MobileNetV2 기준"
 
     return {
         "final_prediction": final_prediction,

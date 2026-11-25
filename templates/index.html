@@ -272,14 +272,14 @@
                     id="predictButton"
                     onclick="predictImage()"
                 >
-                    AI 분류 시작
+                    분류 시작
                 </button>
 
                 <p id="status"></p>
             </section>
 
             <section class="card">
-                <h2>AI 최종 분류 결과</h2>
+                <h2> 최종 분류 결과</h2>
 
                 <div class="final-result">
                     <div class="final-label">
@@ -299,6 +299,18 @@
                     >
                         이미지를 업로드하고 분류를 시작해 주세요.
                     </div>
+                    <div id="alternativeResult" style="
+    display: none;
+    margin-top: 15px;
+    padding: 14px;
+    background-color: #f0f7f3;
+    border: 1px solid #c8e0d1;
+    border-radius: 10px;
+    color: #206c49;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+"></div>
                 </div>
             </section>
         </div>
@@ -516,20 +528,43 @@
 
                 let decisionText = "";
 
-                if (data.decision_method === "다수결") {
-                    decisionText =
-                        "3개 모델 중 " +
-                        data.vote_count +
-                        "개 모델이 동일하게 예측했습니다.";
-                } else {
-                    decisionText =
-                        "모델의 예측이 서로 달라 " +
-                        "MLP 결과를 적용했습니다.";
-                }
+if (data.decision_method === "다수결") {
+    decisionText =
+        "3개 모델 중 " +
+        data.vote_count +
+        "개 모델이 동일하게 예측했습니다.";
+} else {
+    decisionText =
+        "모델의 예측이 서로 달라 " +
+        "MobileNetV2 결과를 적용했습니다.";
+}
 
-                document.getElementById(
-                    "decisionInfo"
-                ).textContent = decisionText;
+document.getElementById("decisionInfo").style.display = "none";
+
+const alternativePredictions = [
+    ...new Set(
+        Object.values(data.models)
+            .map(model => model.prediction)
+            .filter(prediction =>
+                prediction !== data.final_prediction
+            )
+    )
+];
+
+const alternativeResult =
+    document.getElementById("alternativeResult");
+
+if (alternativePredictions.length > 0) {
+    alternativeResult.textContent =
+        "혹시 " +
+        alternativePredictions.join(" 또는 ") +
+        "인가요?";
+
+    alternativeResult.style.display = "block";
+} else {
+    alternativeResult.textContent = "";
+    alternativeResult.style.display = "none";
+}
 
                 showResult("mlp", data.models.MLP);
                 showResult("resnet", data.models.ResNet18);
